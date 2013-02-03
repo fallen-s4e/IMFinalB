@@ -1,5 +1,6 @@
 # movies
 *.avi
+*.wmv
 
 #emacs files
 *~
@@ -7,3 +8,6 @@
 
 # python stuff
 *.pyc
+
+# dlls
+*.dll
