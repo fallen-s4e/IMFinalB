@@ -41,23 +41,24 @@ def framedGen(generator, frameLen):
     for i in xrange(nextLen): # the last value
         yield el
 
-def framedGenTest():
-    testFn(lambda x, y : list(framedGen(x,y)),
-           [(((x for x in xrange(10)), 3),
-             [0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9]),
-            (((x for x in xrange(3)), 5),
-             [0, 0, 0, 1, 2, 2, 2, 2])
-            ],
-           "framedGen")
-framedGenTest()
+testFn(lambda x, y : list(framedGen(x,y)),
+       [(((x for x in xrange(10)), 3),
+         [0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9]),
+        (((x for x in xrange(3)), 5),
+         [0, 0, 0, 1, 2, 2, 2, 2])
+        ],
+       "framedGen")
 
 def take(n, gen):
     for (i, obj) in enumerate(gen):
-        if (i<n):
-            try:
-                yield obj
-            except Exception as ex:
-                return
+        # the last object 
+        if (i == n-1) : 
+            yield obj
+            return
+        try:
+            yield obj
+        except Exception as ex:
+            return
 
 testFn(lambda x,y: list(take(x,y)),
        [((3, [0,1,2,3]), [0,1,2]),
@@ -76,13 +77,21 @@ def temporalFilter(fn, generator, numObjs):
     That function returns generator that generate sequence of objects returned by function fn
     """
     gen = framedGen(generator, numObjs)
-    prevArray = 1
-    
-"""    
-print temporalFilter((lambda xs : reduce(add, xs, 0)),
-                     (x for x in xrange(10)),
-                     3)
-"""
+    prevArrayLen = int(numObjs) / 2
+    prevArray = take(prevArrayLen, gen)
+    postArrayLen = numObjs - prevArrayLen
+    postArray = take(postArrayLen, gen)    
+    arr = list(prevArray) + list(postArray)
+    for el in gen:
+        yield fn(arr)
+        arr = arr[1:] + [el]
+
+testFn(lambda x,y,z: list(temporalFilter(x,y,z)), 
+       [((lambda xs : reduce(add, xs, 0),
+          (x for x in xrange(10)),
+          3),
+         [1, 3, 6, 9, 12, 15, 18, 21, 24, 26])],
+       "temporalFilter")
 
 """ ----------------  utils, and local constants """
 
