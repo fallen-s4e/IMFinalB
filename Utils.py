@@ -6,18 +6,29 @@ from math import pi, sqrt
 from operator import itemgetter, mul, add
 from functools import partial
 
+
+""" ----------------  utils, and local constants """
+
+# fs - listof functions
+def comp(*fs):
+    def f(f1, f2):
+        return lambda x: f1(f2(x))
+    return reduce(f, fs)
+
 """ ----------------  video Utils """
 
-def testFn(fn, argsAndExpectedRes):
+def testFn(fn, argsAndExpectedRes, fnName = None):
+    if fnName == None: fnName = `fn`
     for (args, expectedRes) in argsAndExpectedRes:
         try:
             res = apply(fn, args)
             if (res != expectedRes):
-                print ("function %s failed test:\n output value = %s\n expectedValue = %s"%
-                       (`fn`, `res`, `expectedRes`))
+                print ("function %s failed test:\n args = %s\n output value = %s\n expectedValue = %s"%
+                       (`fnName`, `args`, `res`, `expectedRes`))
         except Exception as ex:
             print ("function %s failed test:\n has thrown an exception %s"%
                    (`fn`, `ex`))
+    print ("Testing function %s finished\n" % `fnName`)
 
 def framedGen(generator, frameLen):
     first = generator.next()
@@ -31,20 +42,31 @@ def framedGen(generator, frameLen):
         yield el
 
 def framedGenTest():
-    if ((list(framedGen((x for x in xrange(10)), 3)) !=
-        [0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9]) or
-        (list(framedGen((x for x in xrange(3)), 5)) != [0, 0, 0, 1, 2, 2, 2, 2]) or
-        (len(list(framedGen((x for x in xrange(5)), 3))) != 8)):
-        print "framedGenTest failed"
-    else: print "framedGenTest passed"
+    testFn(lambda x, y : list(framedGen(x,y)),
+           [(((x for x in xrange(10)), 3),
+             [0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9]),
+            (((x for x in xrange(3)), 5),
+             [0, 0, 0, 1, 2, 2, 2, 2])
+            ],
+           "framedGen")
 framedGenTest()
 
-def take(gen, n):
-    for i in xrange(n):
-        try:
-            yield gen.next()
-        except:
-            return
+def take(n, gen):
+    for (i, obj) in enumerate(gen):
+        if (i<n):
+            try:
+                yield obj
+            except Exception as ex:
+                return
+
+testFn(lambda x,y: list(take(x,y)),
+       [((3, [0,1,2,3]), [0,1,2]),
+        ((2, range(10)), [0,1]),
+        ((2, xrange(10)), [0,1]),
+        ((10, range(2)), [0,1]),
+        ((2, (a for a in range(2))), [0,1]),
+        ],
+       "take")
 
 def temporalFilter(fn, generator, numObjs):
     """ 
@@ -83,12 +105,6 @@ def getFeatures(contour):
     # Extent: ratio of area of region to area of bounding box
     f['Extent'] = f['area']/(f['BoundingBox'][2]*f['BoundingBox'][3])
     return f
-
-# fs - listof functions
-def comp(*fs):
-    def f(f1, f2):
-        return lambda x: f1(f2(x))
-    return reduce(f, fs)
 
 def nestedFor(array, f):
     aList = [list(a) for a in array]
