@@ -95,6 +95,12 @@ testFn(lambda x,y,z: list(temporalFilter(x,y,z)),
 def medianTemporalFilter(generator, numObjs):
     pass
 
+def mapGen(imageMapper):
+    def f(stream):
+        for el in stream:
+            yield imageMapper(el)
+    return f
+
 """ ----------------  video reading, writing, showing """
 
 def genFromVideo(video):
