@@ -67,7 +67,7 @@ testFn(lambda x, y : list(framedGen(x,y)),
         ],
        "framedGen")
 
-def temporalFilter(fn, generator, numObjs):
+def mkTemporalFilter(fn, numObjs):
     """ 
     fn : [Image] -> Image,
     numObjs is number of images that will be aggregated to obtain 1 output images.
@@ -75,25 +75,30 @@ def temporalFilter(fn, generator, numObjs):
     That function returns generator that generate sequence of objects returned by function fn
     fn will be applied to exact number of arguments
     """
-    gen = framedGen(generator, numObjs)
-    prevArrayLen = int(numObjs) / 2
-    prevArray = take(prevArrayLen, gen)
-    postArrayLen = numObjs - prevArrayLen
-    postArray = take(postArrayLen, gen)    
-    arr = list(prevArray) + list(postArray)
-    for el in gen:
-        yield fn(arr)
-        arr = arr[1:] + [el]
+    def f(generator):
+        gen = framedGen(generator, numObjs)
+        prevArrayLen = int(numObjs) / 2
+        prevArray = take(prevArrayLen, gen)
+        postArrayLen = numObjs - prevArrayLen
+        postArray = take(postArrayLen, gen)    
+        arr = list(prevArray) + list(postArray)
+        for el in gen:
+            yield fn(arr)
+            arr = arr[1:] + [el]
+    return f
 
-testFn(lambda x,y,z: list(temporalFilter(x,y,z)), 
+testFn(lambda x,y,z: list(mkTemporalFilter(x,z)(y)), 
        [((lambda xs : reduce(add, xs, 0),
           (x for x in xrange(10)),
           3),
          [1, 3, 6, 9, 12, 15, 18, 21, 24, 26])],
        "temporalFilter")
 
-def medianTemporalFilter(generator, numObjs):
-    pass
+def medianTemporalFilter(numObjs):
+    def f(imgList):
+        for img in imgList:
+            return img
+    return mkTemporalFilter(f, numObjs)
 
 def mapGen(imageMapper):
     def f(stream):
