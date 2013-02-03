@@ -6,6 +6,22 @@ from math import pi, sqrt
 from operator import itemgetter, mul, add
 from functools import partial
 
+
+""" ----------------  Testing Utils """
+
+def testFn(fn, argsAndExpectedRes, fnName = None):
+    if fnName == None: fnName = `fn`
+    for (args, expectedRes) in argsAndExpectedRes:
+        try:
+            res = apply(fn, args)
+            if (res != expectedRes):
+                print ("function %s failed test:\n args = %s\n output value = %s\n expectedValue = %s"%
+                       (`fnName`, `args`, `res`, `expectedRes`))
+        except Exception as ex:
+            print ("function %s failed test:\n has thrown an exception %s"%
+                   (`fn`, `ex`))
+    print ("Testing function %s finished\n" % `fnName`)
+
 """ ---------------- common utils """
 
 def take(n, gen):
@@ -28,21 +44,6 @@ testFn(lambda x,y: list(take(x,y)),
         ],
        "take")
 
-
-""" ----------------  Testing Utils """
-
-def testFn(fn, argsAndExpectedRes, fnName = None):
-    if fnName == None: fnName = `fn`
-    for (args, expectedRes) in argsAndExpectedRes:
-        try:
-            res = apply(fn, args)
-            if (res != expectedRes):
-                print ("function %s failed test:\n args = %s\n output value = %s\n expectedValue = %s"%
-                       (`fnName`, `args`, `res`, `expectedRes`))
-        except Exception as ex:
-            print ("function %s failed test:\n has thrown an exception %s"%
-                   (`fn`, `ex`))
-    print ("Testing function %s finished\n" % `fnName`)
 
 """ ----------------  video Utils: filtering """
 
@@ -92,7 +93,7 @@ testFn(lambda x,y,z: list(temporalFilter(x,y,z)),
        "temporalFilter")
 
 def medianTemporalFilter(generator, numObjs):
-    
+    pass
 
 """ ----------------  video reading, writing, showing """
 
@@ -114,7 +115,7 @@ def showByGen(gen):
         cv2.imshow(winName, el)
         cv2.waitKey(1)
     cv2.destroyWindow(winName)    
-#showByGen(genFromVideo("camera1.avi"))
+#showByGen(genFromVideo(1))
 #cap = cv2.VideoCapture("camera1.avi")
     
 def videoFromGen(generator, filename):
