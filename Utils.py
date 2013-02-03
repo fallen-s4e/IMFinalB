@@ -97,11 +97,9 @@ def medianTemporalFilter(generator, numObjs):
 
 """ ----------------  video reading, writing, showing """
 
-def genFromVideo(filename):
-    video = cv2.VideoCapture(filename)
+def genFromVideo(video):
     if not video.isOpened(): 
-        if not video.open(filename):
-            return # nothing
+        return # nothing
     notEmpty, image = video.read()
     while notEmpty:
         yield image
@@ -112,11 +110,10 @@ def showByGen(gen):
     winName = '__'
     cv2.namedWindow(winName)
     for el in gen:
+        yield el
         cv2.imshow(winName, el)
         cv2.waitKey(1)
     cv2.destroyWindow(winName)    
-#showByGen(genFromVideo(1))
-#cap = cv2.VideoCapture("camera1.avi")
     
 def videoFromGen(generator, filename):
     writer = cv2.VideoWriter(filename, cv.CV_FOURCC('P','I','M','1'), 25, (640,480))
