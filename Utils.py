@@ -6,48 +6,7 @@ from math import pi, sqrt
 from operator import itemgetter, mul, add
 from functools import partial
 
-
-""" ----------------  utils, and local constants """
-
-# fs - listof functions
-def comp(*fs):
-    def f(f1, f2):
-        return lambda x: f1(f2(x))
-    return reduce(f, fs)
-
-""" ----------------  video Utils """
-
-def testFn(fn, argsAndExpectedRes, fnName = None):
-    if fnName == None: fnName = `fn`
-    for (args, expectedRes) in argsAndExpectedRes:
-        try:
-            res = apply(fn, args)
-            if (res != expectedRes):
-                print ("function %s failed test:\n args = %s\n output value = %s\n expectedValue = %s"%
-                       (`fnName`, `args`, `res`, `expectedRes`))
-        except Exception as ex:
-            print ("function %s failed test:\n has thrown an exception %s"%
-                   (`fn`, `ex`))
-    print ("Testing function %s finished\n" % `fnName`)
-
-def framedGen(generator, frameLen):
-    first = generator.next()
-    prevLen = int(frameLen)/2
-    nextLen = int(frameLen) - prevLen
-    for i in xrange(prevLen+1): # one more for the first element that will not be iterated
-        yield first
-    for el in generator:
-        yield el
-    for i in xrange(nextLen): # the last value
-        yield el
-
-testFn(lambda x, y : list(framedGen(x,y)),
-       [(((x for x in xrange(10)), 3),
-         [0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9]),
-        (((x for x in xrange(3)), 5),
-         [0, 0, 0, 1, 2, 2, 2, 2])
-        ],
-       "framedGen")
+""" ---------------- common utils """
 
 def take(n, gen):
     for (i, obj) in enumerate(gen):
@@ -69,12 +28,51 @@ testFn(lambda x,y: list(take(x,y)),
         ],
        "take")
 
+
+""" ----------------  Testing Utils """
+
+def testFn(fn, argsAndExpectedRes, fnName = None):
+    if fnName == None: fnName = `fn`
+    for (args, expectedRes) in argsAndExpectedRes:
+        try:
+            res = apply(fn, args)
+            if (res != expectedRes):
+                print ("function %s failed test:\n args = %s\n output value = %s\n expectedValue = %s"%
+                       (`fnName`, `args`, `res`, `expectedRes`))
+        except Exception as ex:
+            print ("function %s failed test:\n has thrown an exception %s"%
+                   (`fn`, `ex`))
+    print ("Testing function %s finished\n" % `fnName`)
+
+""" ----------------  video Utils: filtering """
+
+def framedGen(generator, frameLen):
+    """ makes frame like [1,2,3], 3 -> [1,1,2,3,3,3] """
+    first = generator.next()
+    prevLen = int(frameLen)/2
+    nextLen = int(frameLen) - prevLen
+    for i in xrange(prevLen+1): # one more for the first element that will not be iterated
+        yield first
+    for el in generator:
+        yield el
+    for i in xrange(nextLen): # the last value
+        yield el
+
+testFn(lambda x, y : list(framedGen(x,y)),
+       [(((x for x in xrange(10)), 3),
+         [0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9]),
+        (((x for x in xrange(3)), 5),
+         [0, 0, 0, 1, 2, 2, 2, 2])
+        ],
+       "framedGen")
+
 def temporalFilter(fn, generator, numObjs):
     """ 
     fn : [Image] -> Image,
     numObjs is number of images that will be aggregated to obtain 1 output images.
     So the number of output objects in the video will be number of input objects - numObjs
     That function returns generator that generate sequence of objects returned by function fn
+    fn will be applied to exact number of arguments
     """
     gen = framedGen(generator, numObjs)
     prevArrayLen = int(numObjs) / 2
@@ -93,7 +91,49 @@ testFn(lambda x,y,z: list(temporalFilter(x,y,z)),
          [1, 3, 6, 9, 12, 15, 18, 21, 24, 26])],
        "temporalFilter")
 
+def medianTemporalFilter(generator, numObjs):
+    
+
+""" ----------------  video reading, writing, showing """
+
+def genFromVideo(filename):
+    video = cv2.VideoCapture(filename)
+    if not video.isOpened(): 
+        if not video.open(filename):
+            return # nothing
+    notEmpty, image = video.read()
+    while notEmpty:
+        yield image
+        notEmpty, image = video.read()
+    video.release()
+
+def showByGen(gen):
+    winName = '__'
+    cv2.namedWindow(winName)
+    for el in gen:
+        cv2.imshow(winName, el)
+        cv2.waitKey(1)
+    cv2.destroyWindow(winName)    
+#showByGen(genFromVideo("camera1.avi"))
+#cap = cv2.VideoCapture("camera1.avi")
+    
+def videoFromGen(generator, filename):
+    writer = cv2.VideoWriter(filename, cv.CV_FOURCC('P','I','M','1'), 25, (640,480))
+    for frame in generator:
+        x = np.random.randint(10,size=(480,640)).astype('uint8')
+        writer.write(x)
+
+    cv2.VideoWriter
+    video.write
+
+
 """ ----------------  utils, and local constants """
+
+# fs - listof functions
+def comp(*fs):
+    def f(f1, f2):
+        return lambda x: f1(f2(x))
+    return reduce(f, fs)
 
 def getFeatures(contour):
     m = cv2.moments(contour)
