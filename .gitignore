@@ -1,0 +1,9 @@
+# movies
+*.avi
+
+#emacs files
+*~
+*#*#
+
+# python stuff
+*.pyc
