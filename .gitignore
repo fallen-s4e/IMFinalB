@@ -11,3 +11,6 @@
 
 # dlls
 *.dll
+
+# temp files
+temp/*
