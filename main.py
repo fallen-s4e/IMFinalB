@@ -5,7 +5,6 @@ from copy import copy, deepcopy
 from math import pi, sqrt
 from operator import itemgetter
 
-from Utils import allExceptedValues, allImages # for editor
 from Utils import *
 
 def run():
@@ -43,4 +42,26 @@ def run():
 
 # run()
 if __name__ == '__main__':
-    print "test: square(42) ==", 42*42
+    print "main started"
+    f = comp( # mapGen(printArr), mapGen(printTypes),
+              # mapGen(mkThresholdFn()),
+              # mapGen(printArr), 
+              # mapGen(printTypes),
+              # mkShowByGen("b"), 
+              # mkShowByGen("b"), 
+              # mapGen(mkThresholdFn(200)),
+              # genWrite("temp"),
+              mkShowByGen("b"),
+              mkFrameEnumerator(),
+              mapGen(mkThresholdFn(50)),
+              varianceTemporalFilter(12, framed=False), 
+              # averageTemporalFilter(25, framed=False), 
+              mkShowByGen("a"),
+              mapGen(mycvtConvert())
+              )
+    video = cv2.VideoCapture(-1)
+    list(take(100, f(genFromVideo(video))))
+    cv2.destroyAllWindows()
+    video.release()
+    print "main ended"
+

@@ -6,6 +6,28 @@ from math import pi, sqrt
 from operator import itemgetter, mul, add
 from functools import partial
 
+""" ----------------  utils: image labeling """
+
+""" fn - is a function that receives image and returns a list which contains
+    tuples - text and point. 
+    Normally one can call it with const(["text", (x, y)])"""
+def labelText(labeller):
+    def f(img):
+        def g((text, point)):
+            cv2.putText(img, text[:5], point, cv2.FONT_ITALIC, 0.5, 
+                        0, 2)
+        map(g, labeller(img))        
+        return img
+    return f
+
+def mkSimpleLabeler(text, point):
+    return lambda im_ : [(text, point)]
+
+def mkFrameEnumerator(point = (0,20)):
+    def f (stream):
+        for (i, el) in enumerate(stream):
+            yield labelText(mkSimpleLabeler("fr:" + `i`, point))(el)
+    return f
 
 """ ----------------  Testing Utils """
 
@@ -19,7 +41,7 @@ def testFn(fn, argsAndExpectedRes, fnName = None):
                        (`fnName`, `args`, `res`, `expectedRes`))
         except Exception as ex:
             print ("function %s failed test:\n has thrown an exception %s"%
-                   (`fn`, `ex`))
+                   (`fnName`, `ex`))
     print ("Testing function %s finished\n" % `fnName`)
 
 """ ---------------- common utils """
@@ -54,20 +76,32 @@ def framedGen(generator, frameLen):
     nextLen = int(frameLen) - prevLen
     for i in xrange(prevLen+1): # one more for the first element that will not be iterated
         yield first
+    lastVal = first
     for el in generator:
         yield el
+        lastVal = el
     for i in xrange(nextLen): # the last value
-        yield el
+        yield lastVal
 
 testFn(lambda x, y : list(framedGen(x,y)),
        [(((x for x in xrange(10)), 3),
          [0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9]),
         (((x for x in xrange(3)), 5),
-         [0, 0, 0, 1, 2, 2, 2, 2])
+         [0, 0, 0, 1, 2, 2, 2, 2]),
+        (((x for x in xrange(3)), 5),
+         [0, 0, 0, 1, 2, 2, 2, 2]),
+        (((x for x in [1,2,3]), 3),
+         [1, 1, 2, 3, 3, 3]),
+        (((x for x in [1,2]), 3),
+         [1, 1, 2, 2, 2]),
+        (((x for x in [1]), 3),
+         [1, 1, 1, 1]),
+        (((x for x in []), 3),
+         [])
         ],
        "framedGen")
 
-def mkTemporalFilter(fn, numObjs):
+def mkTemporalFilter(fn, numObjs, framed=True):
     """ 
     fn : [Image] -> Image,
     numObjs is number of images that will be aggregated to obtain 1 output images.
@@ -76,29 +110,69 @@ def mkTemporalFilter(fn, numObjs):
     fn will be applied to exact number of arguments
     """
     def f(generator):
-        gen = framedGen(generator, numObjs)
-        prevArrayLen = int(numObjs) / 2
-        prevArray = take(prevArrayLen, gen)
-        postArrayLen = numObjs - prevArrayLen
-        postArray = take(postArrayLen, gen)    
-        arr = list(prevArray) + list(postArray)
+        if framed:
+            gen = framedGen(generator, numObjs)
+            prevArrayLen = int(numObjs) / 2
+            prevArray = take(prevArrayLen, gen)
+            postArrayLen = numObjs - prevArrayLen
+            postArray = take(postArrayLen, gen)    
+            arr = list(prevArray) + list(postArray)
+        else:
+            gen = generator
+            arr = list(take(numObjs, gen))
+        yield fn(arr)
         for el in gen:
-            yield fn(arr)
             arr = arr[1:] + [el]
+            yield fn(arr)
     return f
 
 testFn(lambda x,y,z: list(mkTemporalFilter(x,z)(y)), 
        [((lambda xs : reduce(add, xs, 0),
           (x for x in xrange(10)),
           3),
-         [1, 3, 6, 9, 12, 15, 18, 21, 24, 26])],
+         [1, 3, 6, 9, 12, 15, 18, 21, 24, 26, 27])],
        "temporalFilter")
 
-def medianTemporalFilter(numObjs):
+def averageTemporalFilter(numObjs, framed=True):
     def f(imgList):
-        for img in imgList:
-            return img
-    return mkTemporalFilter(f, numObjs)
+        return np.uint8(sum(map(np.int32,imgList)) / len(imgList))
+    return mkTemporalFilter(f, numObjs, framed)
+
+testFn(lambda x,f,y: list(averageTemporalFilter(x, framed=f)(y)), 
+       [((3, False,
+          (x for x in xrange(10))),
+         [1, 2, 3, 4, 5, 6, 7, 8]),
+        ((3, False,
+          (x for x in [0,3,7,2,6,8,2,6,23,6])),
+         [3, 4, 5, 5, 5, 5, 10, 11]),
+        ((3, True,
+          (x for x in [0,3,7,2,6,8,2,6,23,6])),
+         [1, 3, 4, 5, 5, 5, 5, 10, 11, 11, 6])],
+       "averageTemporalFilter")
+
+def varianceTemporalFilter(numObjs, framed=True):
+    def f(imgList):
+        a = imgList[numObjs/2]
+        b = (sum(map(np.int32, imgList)) / len(imgList))
+        c = np.uint8(abs(np.int32(a)-np.int32(b)))
+        return c
+    return mkTemporalFilter(f, numObjs, framed)
+
+testFn(lambda x,f,y: list(varianceTemporalFilter(x, framed=f)(y)), 
+       [((3, False,
+          (x for x in xrange(10))),
+         [0, 0, 0, 0, 0, 0, 0, 0])
+        ,((3, False,
+          (x for x in [6,6,6,6,1,3,3,3,3])),
+          [0, 0, 2, 2, 1, 0, 0])
+        ,((3, False,
+          (x for x in [241,241,241,0,0,0])),
+          [0, 81, 80, 0])
+        ,((3, True,
+          (x for x in [241,241,241,0,0,0])),
+          [0, 0, 81, 80, 0, 0, 0])
+        ],
+       "varianceTemporalFilter")
 
 def mapGen(imageMapper):
     def f(stream):
@@ -117,14 +191,16 @@ def genFromVideo(video):
         notEmpty, image = video.read()
     video.release()
 
-def showByGen(gen):
-    winName = '__'
-    cv2.namedWindow(winName)
-    for el in gen:
-        yield el
-        cv2.imshow(winName, el)
-        cv2.waitKey(1)
-    cv2.destroyWindow(winName)    
+def mkShowByGen(winName = None):
+    if winName == None: winName = "__"
+    def f(gen):
+        cv2.namedWindow(winName)
+        for el in gen:
+            yield el
+            cv2.imshow(winName, el)
+            cv2.waitKey(1)
+        cv2.destroyWindow(winName)    
+    return f
     
 def videoFromGen(generator, filename):
     writer = cv2.VideoWriter(filename, cv.CV_FOURCC('P','I','M','1'), 25, (640,480))
@@ -135,6 +211,11 @@ def videoFromGen(generator, filename):
     cv2.VideoWriter
     video.write
 
+def genWrite(directoryName):
+    def f(stream):
+        for (i, im) in enumerate(stream):
+            yield imwrite(directoryName + "/" + `i` + ".jpg")(im)
+    return f
 
 """ ----------------  utils, and local constants """
 
