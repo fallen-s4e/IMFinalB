@@ -40,41 +40,35 @@ def run():
     testImages(filteredMaskFn, allImages[8:9], allExceptedValues[8:9])
     print(deleteme[::-1])
 
-def allPassClassifier(feats):
-    return (True, 1)
+""" -------------------- combining gens """
 
-def drawBoundBoxes(classifierFn):
-    def f(orig):
-        contour,hier = cv2.findContours(deepcopy(orig),#np.array(gray, np.uint8), 
-                                        cv2.RETR_CCOMP,cv2.CHAIN_APPROX_SIMPLE)
-        for i, cnt in enumerate (contour): 
-            f = getFeatures(cnt)
-            mustDraw, color = classifierFn(f)
-            if mustDraw:
-                x,y,w,h = f['BoundingBox']
-                cv2.rectangle(orig, (x,y), (x+w, y+h), color, 2)
-        return orig
-    return f
+# I couldn't find a way to combine two stream, because function on stream works on
+# entire stream, so I decided to use haskell-like arrows
+def aaa(genMapper1, genMapper2): # &&&
+    2
 
 # run()
 if __name__ == '__main__':
     print "main started"
-    f = comp( # mapGen(printArr), mapGen(printTypes),
-              # mapGen(mkThresholdFn()),
-              # mapGen(printArr), 
-              # mapGen(printTypes),
-              # mapGen(mkThresholdFn(200)),
-              # genWrite("temp"),
-              mkShowByGen("b"),
-              mkFrameEnumerator(),
-              #mapGen(erode(getKernel(5))), # or better:
-              mapGen(drawBoundBoxes(allPassClassifier)),
-              mapGen(closeMO(getKernel(3), 3)),
-              mapGen(mkThresholdFn(10)),
-              varianceTemporalFilter(12, framed=False), 
-              mkShowByGen("a"),
-              mapGen(mycvtConvert())
-              )
+    mask = comp( # mapGen(printArr), mapGen(printTypes),
+                 # mapGen(mkThresholdFn()),
+                 # mapGen(printArr), 
+                 # mapGen(printTypes),
+                 # mapGen(mkThresholdFn(200)),
+                 # genWrite("temp"),
+                 # mkShowByGen("b"),
+                 # mkFrameEnumerator(),
+                 # mapGen(erode(getKernel(5))), # or better:
+                 # mapGen(drawBoundBoxes(areaFilterClassifier)),
+                 mkShowByGen("a"),
+                 mapGen(closeMO(getKernel(3), 3)),
+                 mapGen(mkThresholdFn(10)),
+                 #mapGen(printTypes),
+                 varianceTemporalFilter(12, framed=False), 
+                 mapGen(mycvtConvert())
+                 )
+
+    f = mask
     video = cv2.VideoCapture(-1)
     list(take(100, f(genFromVideo(video))))
     cv2.destroyAllWindows()

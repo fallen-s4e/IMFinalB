@@ -7,6 +7,27 @@ from operator import itemgetter, mul, add
 from functools import partial
 
 
+""" ----------------  bounding box drawing """
+
+def areaFilterClassifier(feats):
+    if (feats['area'] > 200):
+        return (True, 1)
+    else:
+        return (False, None)
+
+def drawBoundBoxes(classifierFn):
+    def f(imageToExtractContours, imageToDrawContours):
+        contour,hier = cv2.findContours(deepcopy(imageToExtractContours),#np.array(gray, np.uint8), 
+                                        cv2.RETR_CCOMP,cv2.CHAIN_APPROX_SIMPLE)
+        for i, cnt in enumerate (contour): 
+            f = getFeatures(cnt)
+            mustDraw, color = classifierFn(f)
+            if mustDraw:
+                x,y,w,h = f['BoundingBox']
+                cv2.rectangle(imageToDrawContours, (x,y), (x+w, y+h), color, 2)
+        return imageToDrawContours
+    return f
+
 """ ----------------  utils: image labeling """
 
 """ fn - is a function that receives image and returns a list which contains
@@ -104,7 +125,8 @@ testFn(lambda x, y : list(framedGen(x,y)),
 
 def mkTemporalFilter(fn, numObjs, framed=True):
     """ 
-    fn : [Image] -> Image,
+    fn : [X] -> X, for example:
+    fn : [(state, image)] -> (state, image)
     numObjs is number of images that will be aggregated to obtain 1 output images.
     So the number of output objects in the video will be number of input objects - numObjs
     That function returns generator that generate sequence of objects returned by function fn
@@ -121,64 +143,91 @@ def mkTemporalFilter(fn, numObjs, framed=True):
         else:
             gen = generator
             arr = list(take(numObjs, gen))
-        yield fn(arr)
         for el in gen:
-            arr = arr[1:] + [el]
             yield fn(arr)
+            arr = arr[1:] + [el]
     return f
 
-testFn(lambda x,y,z: list(mkTemporalFilter(x,z)(y)), 
+testFn(lambda x,y,z,f: list(mkTemporalFilter(x,z, framed=f)(y)), 
        [((lambda xs : reduce(add, xs, 0),
           (x for x in xrange(10)),
-          3),
-         [1, 3, 6, 9, 12, 15, 18, 21, 24, 26, 27])],
+          3,
+          True),
+         [1, 3, 6, 9, 12, 15, 18, 21, 24, 26])],
        "temporalFilter")
 
-def averageTemporalFilter(numObjs, framed=True):
-    def f(imgList):
-        return np.uint8(sum(map(np.int32,imgList)) / len(imgList))
-    return mkTemporalFilter(f, numObjs, framed)
+testFn(lambda y,z,f: len(list(mkTemporalFilter(lambda xs : reduce(add, xs, 0), 
+                                               z, framed=f)(y))), 
+       [(((x for x in xrange(11)),3,True),    len(xrange(11)))
+        ,(((x for x in xrange(13)),3,True),   len(xrange(13)))
+        ,(((x for x in xrange(12)),3,True),   len(xrange(12)))
+        ,(((x for x in xrange(13)),4,True),   len(xrange(13)))
+        ,(((x for x in xrange(1)),4,True),    len(xrange(1)))
+        ,(((x for x in xrange(1)),10,True),   len(xrange(1)))
+        ,(((x for x in []),10,True),          len([]))
+        ],
+       "temporalFilter(len)")
 
-testFn(lambda x,f,y: list(averageTemporalFilter(x, framed=f)(y)), 
+def inTheMiddle(imgList):
+    return imgList[len(imgList)/2]
+
+def withMiddleState(aggregator):
+    def f(imgList):
+        res = aggregator(map(itemgetter(1), imgList))
+        return (inTheMiddle(imgList)[0], res)
+    return f
+
+def averageList(imgList):
+    return np.uint8(sum(map(np.int32,imgList)) / len(imgList))
+
+averageTemporalFilter = partial(mkTemporalFilter, withMiddleState(averageList))
+
+testFn(lambda x,f,y: list(mkTemporalFilter(averageList, x, framed=f)(y)), 
        [((3, False,
           (x for x in xrange(10))),
-         [1, 2, 3, 4, 5, 6, 7, 8]),
+         [1, 2, 3, 4, 5, 6, 7]),
         ((3, False,
           (x for x in [0,3,7,2,6,8,2,6,23,6])),
-         [3, 4, 5, 5, 5, 5, 10, 11]),
+         [3, 4, 5, 5, 5, 5, 10]),
         ((3, True,
           (x for x in [0,3,7,2,6,8,2,6,23,6])),
-         [1, 3, 4, 5, 5, 5, 5, 10, 11, 11, 6])],
+         [1, 3, 4, 5, 5, 5, 5, 10, 11, 11])],
        "averageTemporalFilter")
 
-def varianceTemporalFilter(numObjs, framed=True):
-    def f(imgList):
-        a = imgList[numObjs/2]
-        b = (sum(map(np.int32, imgList)) / len(imgList))
-        c = np.uint8(abs(np.int32(a)-np.int32(b)))
-        return c
-    return mkTemporalFilter(f, numObjs, framed)
+def varianceList(imgList):
+    a = inTheMiddle(imgList)
+    b = (sum(map(np.int32, imgList)) / len(imgList))
+    c = np.uint8(abs(np.int32(a)-np.int32(b)))
+    return c
 
-testFn(lambda x,f,y: list(varianceTemporalFilter(x, framed=f)(y)), 
+varianceTemporalFilter = partial(mkTemporalFilter, withMiddleState(varianceList))    
+
+testFn(lambda x,f,y: list(mkTemporalFilter(varianceList, x, framed=f)(y)), 
        [((3, False,
           (x for x in xrange(10))),
-         [0, 0, 0, 0, 0, 0, 0, 0])
+         [0, 0, 0, 0, 0, 0, 0])
         ,((3, False,
           (x for x in [6,6,6,6,1,3,3,3,3])),
-          [0, 0, 2, 2, 1, 0, 0])
+          [0, 0, 2, 2, 1, 0])
         ,((3, False,
           (x for x in [241,241,241,0,0,0])),
-          [0, 81, 80, 0])
+          [0, 81, 80])
         ,((3, True,
           (x for x in [241,241,241,0,0,0])),
-          [0, 0, 81, 80, 0, 0, 0])
+          [0, 0, 81, 80, 0, 0])
         ],
        "varianceTemporalFilter")
 
 def mapGen(imageMapper):
     def f(stream):
-        for el in stream:
-            yield imageMapper(el)
+        for state, el in stream:
+            yield (state, imageMapper(el))
+    return f
+
+def mapGenWithState(imageMapper):
+    def f(stream):
+        for stateAndEl in stream:
+            yield imageMapper(stateAndEl)
     return f
 
 """ ----------------  video reading, writing, showing """
@@ -188,7 +237,7 @@ def genFromVideo(video):
         return # nothing
     notEmpty, image = video.read()
     while notEmpty:
-        yield image
+        yield (image, image) # None-state
         notEmpty, image = video.read()
     video.release()
 
@@ -196,25 +245,26 @@ def mkShowByGen(winName = None):
     if winName == None: winName = "__"
     def f(gen):
         cv2.namedWindow(winName)
-        for el in gen:
-            yield el
+        for (state, el) in gen:
+            yield (state, el)
             cv2.imshow(winName, el)
             cv2.waitKey(1)
         cv2.destroyWindow(winName)    
     return f
-    
+
+"""    
 def videoFromGen(generator, filename):
     writer = cv2.VideoWriter(filename, cv.CV_FOURCC('P','I','M','1'), 25, (640,480))
     for frame in generator:
         x = np.random.randint(10,size=(480,640)).astype('uint8')
         writer.write(x)
-
     cv2.VideoWriter
     video.write
+"""
 
 def genWrite(directoryName):
     def f(stream):
-        for (i, im) in enumerate(stream):
+        for (i, (state_, im)) in enumerate(stream):
             yield imwrite(directoryName + "/" + `i` + ".jpg")(im)
     return f
 
