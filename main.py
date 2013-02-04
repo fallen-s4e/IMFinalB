@@ -44,12 +44,15 @@ def run():
 
 # I couldn't find a way to combine two stream, because function on stream works on
 # entire stream, so I decided to use haskell-like arrows
-def aaa(genMapper1, genMapper2): # &&&
-    2
+
 
 # run()
 if __name__ == '__main__':
     print "main started"
+
+    def g((state, image)):
+        return (state, drawBoundBoxes(areaFilterClassifier)(state, image))
+
     mask = comp( # mapGen(printArr), mapGen(printTypes),
                  # mapGen(mkThresholdFn()),
                  # mapGen(printArr), 
@@ -61,16 +64,17 @@ if __name__ == '__main__':
                  # mapGen(erode(getKernel(5))), # or better:
                  # mapGen(drawBoundBoxes(areaFilterClassifier)),
                  mkShowByGen("a"),
+                 mapGenWithState(g),
+                 # mapGenWithState(lambda (a,b) : (printTypes( a0 ), printTypes( b ))),
                  mapGen(closeMO(getKernel(3), 3)),
                  mapGen(mkThresholdFn(10)),
-                 #mapGen(printTypes),
                  varianceTemporalFilter(12, framed=False), 
                  mapGen(mycvtConvert())
                  )
 
     f = mask
     video = cv2.VideoCapture(-1)
-    list(take(100, f(genFromVideo(video))))
+    list(take(400, f(genFromVideo(video))))
     cv2.destroyAllWindows()
     video.release()
     print "main ended"

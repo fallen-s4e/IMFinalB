@@ -16,7 +16,7 @@ def areaFilterClassifier(feats):
         return (False, None)
 
 def drawBoundBoxes(classifierFn):
-    def f(imageToExtractContours, imageToDrawContours):
+    def f(imageToDrawContours, imageToExtractContours):
         contour,hier = cv2.findContours(deepcopy(imageToExtractContours),#np.array(gray, np.uint8), 
                                         cv2.RETR_CCOMP,cv2.CHAIN_APPROX_SIMPLE)
         for i, cnt in enumerate (contour): 
@@ -432,6 +432,7 @@ def printTypes(im):
     print "im type = %s" % type(im)
     print "im[0] type = %s" % type(im[0])
     print "im[0][0] type = %s" % type(im[0][0])
+    print
     return im
 
 def printAllValues(im):
