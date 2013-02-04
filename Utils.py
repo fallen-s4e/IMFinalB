@@ -6,6 +6,7 @@ from math import pi, sqrt
 from operator import itemgetter, mul, add
 from functools import partial
 
+
 """ ----------------  utils: image labeling """
 
 """ fn - is a function that receives image and returns a list which contains
@@ -283,14 +284,6 @@ def isCircle(per, area):
         return True
     return False
 
-allImagesNames = ["P1000697s.jpg", "P1000698s.jpg", "P1000699s.jpg", 
-                  "P1000703s.jpg", "P1000705s.jpg", "P1000706s.jpg", 
-                  "P1000709s.jpg", "P1000710s.jpg", "P1000713s.jpg"]
-
-allImages = map(lambda im:"../images/trainingSet/" + im, allImagesNames)
-
-allExceptedValues = [208, 133, 78, 67, 162, 167, 130, 130, 170]
-
 def getKernel(n = 7):
     return cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (n,n))
 
@@ -311,7 +304,7 @@ def sumHolesArea(hier, contours, firstChildIdx):
     idxs = childrenIdxs(hier, firstChildIdx)
     return sum( map(lambda i : cv2.contourArea( contours[i] ), idxs) )
 
-""" finds all the contours which have an area more than 'minArea', but < 'maxArea'
+""" finds all the contours which have a holes area more than 'minArea', but < 'maxArea'
     returns all the contours and a list of the pairs(indexes, area) that meet the 
     requirements """
 def findAllContourByHolesArea(gray, minArea = 1700, maxArea = 1000000000, 
@@ -330,7 +323,7 @@ def findAllContourByHolesArea(gray, minArea = 1700, maxArea = 1000000000,
             idxs.append((i, area))
 
     return (contour, idxs)
-
+ 
 
 """ ----------------  utils: printing """
 

@@ -40,6 +40,22 @@ def run():
     testImages(filteredMaskFn, allImages[8:9], allExceptedValues[8:9])
     print(deleteme[::-1])
 
+def allPassClassifier(feats):
+    return (True, 1)
+
+def drawBoundBoxes(classifierFn):
+    def f(orig):
+        contour,hier = cv2.findContours(deepcopy(orig),#np.array(gray, np.uint8), 
+                                        cv2.RETR_CCOMP,cv2.CHAIN_APPROX_SIMPLE)
+        for i, cnt in enumerate (contour): 
+            f = getFeatures(cnt)
+            mustDraw, color = classifierFn(f)
+            if mustDraw:
+                x,y,w,h = f['BoundingBox']
+                cv2.rectangle(orig, (x,y), (x+w, y+h), color, 2)
+        return orig
+    return f
+
 # run()
 if __name__ == '__main__':
     print "main started"
@@ -47,15 +63,15 @@ if __name__ == '__main__':
               # mapGen(mkThresholdFn()),
               # mapGen(printArr), 
               # mapGen(printTypes),
-              # mkShowByGen("b"), 
-              # mkShowByGen("b"), 
               # mapGen(mkThresholdFn(200)),
               # genWrite("temp"),
               mkShowByGen("b"),
               mkFrameEnumerator(),
-              mapGen(mkThresholdFn(50)),
+              #mapGen(erode(getKernel(5))), # or better:
+              mapGen(drawBoundBoxes(allPassClassifier)),
+              mapGen(closeMO(getKernel(3), 3)),
+              mapGen(mkThresholdFn(10)),
               varianceTemporalFilter(12, framed=False), 
-              # averageTemporalFilter(25, framed=False), 
               mkShowByGen("a"),
               mapGen(mycvtConvert())
               )
