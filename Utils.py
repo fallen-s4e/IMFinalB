@@ -264,8 +264,8 @@ def videoFromGen(generator, filename):
 
 def genWrite(directoryName):
     def f(stream):
-        for (i, (state_, im)) in enumerate(stream):
-            yield imwrite(directoryName + "/" + `i` + ".jpg")(im)
+        for (i, (state, im)) in enumerate(stream):
+            yield (state, imwrite(directoryName + "/" + `i` + ".jpg")(im))
     return f
 
 """ ----------------  utils, and local constants """
