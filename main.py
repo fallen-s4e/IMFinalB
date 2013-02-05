@@ -57,24 +57,31 @@ if __name__ == '__main__':
                  # mapGen(mkThresholdFn()),
                  # mapGen(printArr), 
                  # mapGen(printTypes),
-                 # mapGen(mkThresholdFn(200)),
-                 # genWrite("temp"),
+                 mapGen(mkThresholdFn(200)),
+                 #genWrite("temp"),
                  # mkShowByGen("b"),
                  # mkFrameEnumerator(),
                  # mapGen(erode(getKernel(5))), # or better:
                  # mapGen(drawBoundBoxes(areaFilterClassifier)),
                  mkShowByGen("a"),
+                                
                  mapGenWithState(g),
+                 mkShowByGen("b"),
                  # mapGenWithState(lambda (a,b) : (printTypes( a0 ), printTypes( b ))),
-                 mapGen(closeMO(getKernel(3), 3)),
-                 mapGen(mkThresholdFn(10)),
-                 varianceTemporalFilter(12, framed=False), 
+                 #mapGen(closeMO(getKernel(3), 3)),
+                 mapGen(dilate(getKernel(3))),
+
+                 mapGen(mkThresholdFn(20)),
+                 varianceTemporalFilter(50, framed=False), 
                  mapGen(mycvtConvert())
                  )
 
     f = mask
     video = cv2.VideoCapture(-1)
-    list(take(400, f(genFromVideo(video))))
+    video = cv2.VideoCapture("camera1.avi")
+    for x in range(0,25*40):
+        video.read()
+    list(take(4000, f(genFromVideo(video))))
     cv2.destroyAllWindows()
     video.release()
     print "main ended"
