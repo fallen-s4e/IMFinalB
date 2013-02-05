@@ -9,9 +9,33 @@ from functools import partial
 
 """ ----------------  bounding box drawing """
 
+def isMachine(feats):
+    x,y,w,h = feats['BoundingBox']
+    if ((feats['area'] > 800) and
+        (w>h)):
+       return True
+    else:
+       return False
+
+def isHuman(feats):
+    x,y,w,h = feats['BoundingBox']
+    if ((feats['area'] > 250) and
+        (w<h)):
+       return True
+    else:
+       return False
+
+def isOther(feats):
+     if (feats['area'] > 200):
+        return True
+     else:
+        return False
+        
 def areaFilterClassifier(feats):
-    if (feats['area'] > 200):
-        return (True, 1)
+    if isMachine(feats):
+        return (True, [ 255,0,0,0])
+    if isHuman(feats):
+        return (True, [ 0,255,0,0])
     else:
         return (False, None)
 
