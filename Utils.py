@@ -30,7 +30,7 @@ def isOther(feats):
         return True
      else:
         return False
-        
+
 def areaFilterClassifier(feats):
     if isMachine(feats):
         return (True, [ 255,0,0,0])
@@ -41,9 +41,9 @@ def areaFilterClassifier(feats):
 
 def drawBoundBoxes(classifierFn):
     def f(imageToDrawContours, imageToExtractContours):
-        contour,hier = cv2.findContours(deepcopy(imageToExtractContours),#np.array(gray, np.uint8), 
+        contour,hier = cv2.findContours(deepcopy(imageToExtractContours),#np.array(gray, np.uint8),
                                         cv2.RETR_CCOMP,cv2.CHAIN_APPROX_SIMPLE)
-        for i, cnt in enumerate (contour): 
+        for i, cnt in enumerate (contour):
             f = getFeatures(cnt)
             mustDraw, color = classifierFn(f)
             if mustDraw:
@@ -55,14 +55,14 @@ def drawBoundBoxes(classifierFn):
 """ ----------------  utils: image labeling """
 
 """ fn - is a function that receives image and returns a list which contains
-    tuples - text and point. 
+    tuples - text and point.
     Normally one can call it with const(["text", (x, y)])"""
 def labelText(labeller):
     def f(img):
         def g((text, point)):
-            cv2.putText(img, text[:5], point, cv2.FONT_ITALIC, 0.5, 
+            cv2.putText(img, text[:5], point, cv2.FONT_ITALIC, 0.5,
                         0, 2)
-        map(g, labeller(img))        
+        map(g, labeller(img))
         return img
     return f
 
@@ -94,8 +94,8 @@ def testFn(fn, argsAndExpectedRes, fnName = None):
 
 def take(n, gen):
     for (i, obj) in enumerate(gen):
-        # the last object 
-        if (i == n-1) : 
+        # the last object
+        if (i == n-1) :
             yield obj
             return
         try:
@@ -148,7 +148,7 @@ testFn(lambda x, y : list(framedGen(x,y)),
        "framedGen")
 
 def mkTemporalFilter(fn, numObjs, framed=True):
-    """ 
+    """
     fn : [X] -> X, for example:
     fn : [(state, image)] -> (state, image)
     numObjs is number of images that will be aggregated to obtain 1 output images.
@@ -162,7 +162,7 @@ def mkTemporalFilter(fn, numObjs, framed=True):
             prevArrayLen = int(numObjs) / 2
             prevArray = take(prevArrayLen, gen)
             postArrayLen = numObjs - prevArrayLen
-            postArray = take(postArrayLen, gen)    
+            postArray = take(postArrayLen, gen)
             arr = list(prevArray) + list(postArray)
         else:
             gen = generator
@@ -172,7 +172,7 @@ def mkTemporalFilter(fn, numObjs, framed=True):
             arr = arr[1:] + [el]
     return f
 
-testFn(lambda x,y,z,f: list(mkTemporalFilter(x,z, framed=f)(y)), 
+testFn(lambda x,y,z,f: list(mkTemporalFilter(x,z, framed=f)(y)),
        [((lambda xs : reduce(add, xs, 0),
           (x for x in xrange(10)),
           3,
@@ -180,8 +180,8 @@ testFn(lambda x,y,z,f: list(mkTemporalFilter(x,z, framed=f)(y)),
          [1, 3, 6, 9, 12, 15, 18, 21, 24, 26])],
        "temporalFilter")
 
-testFn(lambda y,z,f: len(list(mkTemporalFilter(lambda xs : reduce(add, xs, 0), 
-                                               z, framed=f)(y))), 
+testFn(lambda y,z,f: len(list(mkTemporalFilter(lambda xs : reduce(add, xs, 0),
+                                               z, framed=f)(y))),
        [(((x for x in xrange(11)),3,True),    len(xrange(11)))
         ,(((x for x in xrange(13)),3,True),   len(xrange(13)))
         ,(((x for x in xrange(12)),3,True),   len(xrange(12)))
@@ -206,7 +206,7 @@ def averageList(imgList):
 
 averageTemporalFilter = partial(mkTemporalFilter, withMiddleState(averageList))
 
-testFn(lambda x,f,y: list(mkTemporalFilter(averageList, x, framed=f)(y)), 
+testFn(lambda x,f,y: list(mkTemporalFilter(averageList, x, framed=f)(y)),
        [((3, False,
           (x for x in xrange(10))),
          [1, 2, 3, 4, 5, 6, 7]),
@@ -224,9 +224,9 @@ def varianceList(imgList):
     c = np.uint8(abs(np.int32(a)-np.int32(b)))
     return c
 
-varianceTemporalFilter = partial(mkTemporalFilter, withMiddleState(varianceList))    
+varianceTemporalFilter = partial(mkTemporalFilter, withMiddleState(varianceList))
 
-testFn(lambda x,f,y: list(mkTemporalFilter(varianceList, x, framed=f)(y)), 
+testFn(lambda x,f,y: list(mkTemporalFilter(varianceList, x, framed=f)(y)),
        [((3, False,
           (x for x in xrange(10))),
          [0, 0, 0, 0, 0, 0, 0])
@@ -257,7 +257,7 @@ def mapGenWithState(imageMapper):
 """ ----------------  video reading, writing, showing """
 
 def genFromVideo(video):
-    if not video.isOpened(): 
+    if not video.isOpened():
         return # nothing
     notEmpty, image = video.read()
     while notEmpty:
@@ -273,10 +273,10 @@ def mkShowByGen(winName = None):
             yield (state, el)
             cv2.imshow(winName, el)
             cv2.waitKey(1)
-        cv2.destroyWindow(winName)    
+        cv2.destroyWindow(winName)
     return f
 
-"""    
+"""
 def videoFromGen(generator, filename):
     writer = cv2.VideoWriter(filename, cv.CV_FOURCC('P','I','M','1'), 25, (640,480))
     for frame in generator:
@@ -303,7 +303,7 @@ def comp(*fs):
 def getFeatures(contour):
     m = cv2.moments(contour)
     f = {}
-    
+
     f['area'] = m['m00']
     f['perimeter'] = cv2.arcLength(contour,True)
     # bounding box: x,y,width,height
@@ -313,7 +313,7 @@ def getFeatures(contour):
         f['Centroid'] = 'undefined'
     else:
         f['Centroid'] = ( m['m10']/m['m00'],m['m01']/m['m00'] )
-    
+
     # EquivDiameter: diameter of circle with same area as region
     f['EquivDiameter'] = np.sqrt(4*f['area']/np.pi)
     # Extent: ratio of area of region to area of bounding box
@@ -379,17 +379,17 @@ def sumHolesArea(hier, contours, firstChildIdx):
     return sum( map(lambda i : cv2.contourArea( contours[i] ), idxs) )
 
 """ finds all the contours which have a holes area more than 'minArea', but < 'maxArea'
-    returns all the contours and a list of the pairs(indexes, area) that meet the 
+    returns all the contours and a list of the pairs(indexes, area) that meet the
     requirements """
-def findAllContourByHolesArea(gray, minArea = 1700, maxArea = 1000000000, 
-                              inclFilled = False):    
-    contour,hier = cv2.findContours(np.array(gray, np.uint8), 
+def findAllContourByHolesArea(gray, minArea = 1700, maxArea = 1000000000,
+                              inclFilled = False):
+    contour,hier = cv2.findContours(np.array(gray, np.uint8),
                                     cv2.RETR_CCOMP,cv2.CHAIN_APPROX_SIMPLE)
- 
-    idxs = []   
+
+    idxs = []
     for i, cnt in enumerate (contour):
         area = sumHolesArea (hier, contour, i)
-        
+
         if (hier[0][i][2] == -1):
             if (inclFilled):
                 idxs.append((i, area))
@@ -397,7 +397,7 @@ def findAllContourByHolesArea(gray, minArea = 1700, maxArea = 1000000000,
             idxs.append((i, area))
 
     return (contour, idxs)
- 
+
 
 """ ----------------  utils: printing """
 
@@ -420,10 +420,10 @@ def showImg(im):
     cv2.waitKey(0)
     cv2.destroyWindow(winName)
     return im
-    
-""" a wrapper around a combinator 'f' and array of images. Then read, 
+
+""" a wrapper around a combinator 'f' and array of images. Then read,
     apply function 'f' to the read image and print the result to a named window """
-def showImgs(f, imgs):    
+def showImgs(f, imgs):
     map(comp(showImg, f, cv2.imread), imgs)
 
 def printArr(img):
@@ -445,7 +445,7 @@ def printMaxMinIdxs(im):
             if (im[i][j] > im[maxIdx[0]][maxIdx[1]]):
                 maxIdx = (i,j)
             if (im[i][j] < im[minIdx[0]][minIdx[1]]):
-                minIdx = (i,j)            
+                minIdx = (i,j)
     maxV = im[maxIdx[0]][maxIdx[1]]
     minV = im[minIdx[0]][minIdx[1]]
     print "(max = %s, min = %s) " % (maxV, minV)
@@ -478,7 +478,7 @@ def printText(imToText):
         print (imToText(im))
         return im
     return f
-    
+
 """ ----------------  utils: image processing basic stuff """
 
 #another way: im_gray = cv2.imread('grayscale_image.png', cv2.CV_LOAD_IMAGE_GRAYSCALE)
@@ -502,7 +502,7 @@ def myContours1(im):
     # cv2.imshow(winName, contours[x])
     # showImg(contours)
     # cv2.drawContours(i, contours, -1, 150, hierarchy = hierarchy1)
-    cv2.drawContours(im, contours, 0, 255, 2, 
+    cv2.drawContours(im, contours, 0, 255, 2,
                             hierarchy = hierarchy1)
     return im
 
@@ -513,10 +513,10 @@ def erode(kernel = getKernel()):
     return lambda img : cv2.erode(img, kernel)
 
 def closeMO(kernel = getKernel(), iterations = 1):
-    return lambda im: cv2.morphologyEx(im, cv2.MORPH_OPEN, kernel, 
+    return lambda im: cv2.morphologyEx(im, cv2.MORPH_OPEN, kernel,
                                        iterations = iterations)
 def openMO(kernel = getKernel(), iterations = 1):
-    return lambda im: cv2.morphologyEx(im, cv2.MORPH_OPEN, kernel, 
+    return lambda im: cv2.morphologyEx(im, cv2.MORPH_OPEN, kernel,
                                        iterations = iterations)
 
 def myContours(im):
@@ -524,16 +524,16 @@ def myContours(im):
     (contours , hierarchy1)= cv2.findContours(im, 1 , 1)
     cv2.drawContours(im, contours, -1, 150,  hierarchy = hierarchy1)
     return im
-    
+
 # n must be 0, 1 or 2
-def splitFn(n): 
+def splitFn(n):
     def f(im):
         return cv2.split(im)[n]
     return f
 
 def intensityLikelyhood(img, intensity):
     img = np.cast[np.int32](img)
-    
+
     img = abs(img - intensity)
 
     maxV = float(max(map(max, img)))
@@ -541,7 +541,7 @@ def intensityLikelyhood(img, intensity):
     diff = maxV - minV
 
     img = 1.0 - ((img - minV) / diff)
-    
+
     return img
 
 def splitterByColor(aColor):
@@ -557,11 +557,11 @@ def splitterByColor(aColor):
         (c1,  c2,  c3)  = aColor
         (im1, im2, im3) = (g(im1, c1), g(im2, c2), g(im3, c3))
         resImg = normalizeGS(h(im1,im2,im3))
-        
+
         return resImg
     return f
-    
-def copperSplitter(): 
+
+def copperSplitter():
     copperColor = (170, 70, 30)
     return splitterByColor(copperColor)
 
@@ -584,7 +584,7 @@ def sumMasks(m1, m2):
     return m1 + m2
 
 def combineMasks(combinator, mFn1, mFn2, type1 = int, type2 = np.float64):
-    def f(im): 
+    def f(im):
         im1, im2 = np.array(mFn1(im), type1), np.array(mFn2(im), type1)
         return np.array(combinator(im1, im2), type2)
     return f
@@ -595,7 +595,7 @@ def itemsWithBigHoles(orig):
     # 1500, 2100 min and max sizes of the holes of the red stuff
     (contour, idxs) = findAllContourByHolesArea(deepcopy(orig), 1800, 2100)
     gray = np.zeros((len (orig), len (orig[0])))
-    
+
     cntIdx = 0
     color = 1
     thickness = -1 # Thickness of lines the contours are drawn with. If it is negative (for example, thickness=CV_FILLED ), the contour interiors are drawn.
@@ -608,12 +608,12 @@ def fillSmallHoles(minA = 0, maxA = 350000, inclFilled = False):
     def f(orig):
         (contour, idxs) = findAllContourByHolesArea(deepcopy(orig), minA, maxA, inclFilled)
         gray = np.zeros((len (orig), len (orig[0])))
-        
+
         cntIdx = 0
         color = 1
         thickness = -1 # Thickness of lines the contours are drawn with. If it is negative (for example, thickness=CV_FILLED ), the contour interiors are drawn.
         map(lambda (i, _) : cv2.drawContours(gray, [contour[i]], cntIdx, color, thickness),
             idxs)
-    
+
         return gray
     return f
