@@ -522,7 +522,7 @@ def erode(kernel = getKernel()):
     return lambda img : cv2.erode(img, kernel)
 
 def closeMO(kernel = getKernel(), iterations = 1):
-    return lambda im: cv2.morphologyEx(im, cv2.MORPH_OPEN, kernel,
+    return lambda im: cv2.morphologyEx(im, cv2.MORPH_CLOSE, kernel,
                                        iterations = iterations)
 def openMO(kernel = getKernel(), iterations = 1):
     return lambda im: cv2.morphologyEx(im, cv2.MORPH_OPEN, kernel,
