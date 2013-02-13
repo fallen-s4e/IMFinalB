@@ -218,11 +218,20 @@ testFn(lambda x,f,y: list(mkTemporalFilter(averageList, x, framed=f)(y)),
          [1, 3, 4, 5, 5, 5, 5, 10, 11, 11])],
        "averageTemporalFilter")
 
-def varianceList(imgList):
+def varianceAbsList(imgList):
     a = inTheMiddle(imgList)
     b = (sum(map(np.int32, imgList)) / len(imgList))
     c = np.uint8(abs(np.int32(a)-np.int32(b)))
     return c
+
+def varianceSqrList(imgList):
+    def sqr(x): return x*x
+    a = inTheMiddle(imgList)
+    b = (sum(map(np.int32, imgList)) / len(imgList))
+    c = np.uint8(sqr(np.int32(a)-np.int32(b)))
+    return c
+
+varianceList = varianceSqrList
 
 varianceTemporalFilter = partial(mkTemporalFilter, withMiddleState(varianceList))
 
